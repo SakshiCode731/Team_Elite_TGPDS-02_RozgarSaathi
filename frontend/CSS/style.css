@@ -11,7 +11,7 @@
   --green-pale: #E6F7F1;
   --navy: #0F1C2E;
   --navy-mid: #1E3448;
-  --navy-light: #243b55;
+  --navy-light: #243b55; 
   --slate: #4A5568;
   --muted: #718096;
   --border: #E2E8F0;
@@ -20,7 +20,8 @@
   --bg-alt: #EEF1F5;
   --white: #FFFFFF;
   --radius: 16px;
-  --radius-sm: 10px;
+  --radius-sm: 10px; 
+  /* best color */
   --radius-xs: 6px;
   --shadow: 0 2px 16px rgba(15,28,46,0.07);
   --shadow-lg: 0 8px 36px rgba(15,28,46,0.13);
