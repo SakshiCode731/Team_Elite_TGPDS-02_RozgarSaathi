@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RozgarSaathi — Daily Gig Board</title>
+  <meta name="description" content="Zero commission hyperlocal daily wage job board. Connect workers and employers directly via WhatsApp." />
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Socket.io from CDN -->
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+ 
+<!-- ═══ NAVBAR ═════════════════════════════════════════════ -->
+<nav class="navbar">
+  <a class="navbar-brand" href="#" onclick="navigateTo('home')">
+    <span>Rozgar</span>Saathi<span class="dot"></span>
+  </a>
+  <div class="nav-links">
+    <button class="nav-btn outline" onclick="navigateTo('jobs')">Find Jobs</button>
+    <button class="nav-btn outline" onclick="navigateTo('workers')">Find Workers</button>
+ 
+    <!-- Logged-out state -->
+    <div id="nav-auth" style="display:flex;gap:8px">
+      <button class="nav-btn outline" onclick="openModal('modal-login')">Login</button>
+      <button class="nav-btn primary" onclick="openModal('modal-choose-register')">Register</button>
+    </div>
+ 
+    <!-- Logged-in state -->
+    <div id="nav-user" style="display:none" class="nav-user">
+      <button class="nav-btn outline" onclick="navigateTo('dashboard')">Dashboard</button>
+      <div class="avatar" id="nav-avatar">U</div>
+      <span id="nav-user-name"></span>
+      <button class="nav-btn outline" onclick="logout()" style="padding:6px 12px">↪ Logout</button>
+    </div>
+  </div>
+</nav>
+ 
+<!-- ═══ TOAST CONTAINER ═════════════════════════════════════ -->
+<div class="toast-container" id="toast-container"></div>
+ 
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PAGE: HOME                                              -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+ 
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        🇮🇳 Made for India's Workers
+      </div>
+      <h1>Your Digital <span class="highlight">Naka</span><br>Zero Commission</h1>
+      <p>Connect directly with daily wage workers or find same-day jobs near you. No middleman. No commission. Just WhatsApp.</p>
+      <div class="hero-btns">
+        <button class="btn-hero-primary" onclick="openModal('modal-worker-register')">
+          👷 I'm a Worker — Register Free
+        </button>
+        <button class="btn-hero-secondary" onclick="openModal('modal-post-job')">
+          📋 Post a Job
+        </button>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num" id="stat-workers">—</div>
+      <div class="stat-label">Registered Workers</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-jobs">—</div>
+      <div class="stat-label">Open Jobs Today</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat-verified">—</div>
+      <div class="stat-label">Aadhaar Verified</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">₹0</div>
+      <div class="stat-label">Platform Commission</div>
+    </div>
+  </div>
+ 
+  <!-- How it works -->
+  <div class="container">
+    <section class="section">
+      <div class="section-title">🚀 How RozgarSaathi Works</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+        <div class="card" style="text-align:center;border-top:3px solid var(--saffron)">
+          <div style="font-size:2.5rem;margin-bottom:12px">📝</div>
+          <h3 style="margin-bottom:8px">1. Register Free</h3>
+          <p style="font-size:14px;color:var(--muted)">Workers add skills, set daily rate, drop location pin</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid var(--saffron)">
+          <div style="font-size:2.5rem;margin-bottom:12px">🛡️</div>
+          <h3 style="margin-bottom:8px">2. Verify Identity</h3>
+          <p style="font-size:14px;color:var(--muted)">Get Aadhaar-verified badge to build instant trust</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid var(--saffron)">
+          <div style="font-size:2.5rem;margin-bottom:12px">📍</div>
+          <h3 style="margin-bottom:8px">3. Get Matched</h3>
+          <p style="font-size:14px;color:var(--muted)">Job feed auto-filters by your skill + location radius</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid var(--green)">
+          <div style="font-size:2.5rem;margin-bottom:12px">💬</div>
+          <h3 style="margin-bottom:8px">4. Connect on WhatsApp</h3>
+          <p style="font-size:14px;color:var(--muted)">One tap — direct WhatsApp. No middleman ever.</p>
+        </div>
+      </div>
+    </section>
+ 
+    <!-- Skills showcase -->
+    <section class="section">
+      <div class="section-title">🔨 Skills on RozgarSaathi</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">⚡ Electrician</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🔧 Plumber</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🪚 Carpenter</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🖌️ Painter</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">👷 Mazdoor</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🔥 Welder</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🧱 Mason</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">❄️ AC Mechanic</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🏗️ Tile Worker</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🪟 Glass Worker</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🛗 Lift Mechanic</span>
+        <span class="skill-tag" style="font-size:14px;padding:8px 16px">🚗 Driver</span>
+      </div>
+    </section>
+ 
+    <!-- CTAs -->
+    <section class="section">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card" style="background:var(--navy);color:white;border:none">
+          <h3 style="color:white;margin-bottom:10px;font-family:var(--font-display);font-size:1.2rem">👷 For Workers</h3>
+          <p style="color:rgba(255,255,255,0.75);font-size:14px;margin-bottom:16px">Stop waiting at the naka. Get discovered by employers near you.</p>
+          <button class="btn-hero-primary" style="font-size:14px;padding:12px 20px" onclick="openModal('modal-worker-register')">Register as Worker</button>
+        </div>
+        <div class="card" style="background:var(--green);color:white;border:none">
+          <h3 style="color:white;margin-bottom:10px;font-family:var(--font-display);font-size:1.2rem">🏠 For Employers</h3>
+          <p style="color:rgba(255,255,255,0.85);font-size:14px;margin-bottom:16px">Post a job and get WhatsApp replies from verified workers nearby.</p>
+          <button class="btn-hero-primary" style="background:white;color:var(--green);font-size:14px;padding:12px 20px" onclick="openModal('modal-poster-register')">Register as Employer</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+ 
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PAGE: JOBS                                              -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="page-jobs" class="page">
+  <div class="container-wide">
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <h2 class="section-title" style="margin:0">📋 Jobs Near You</h2>
+        <div style="display:flex;gap:10px">
+          <span class="location-pill user-location-display" onclick="getLocation()">📍 Detecting location...</span>
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px" onclick="openModal('modal-post-job')">+ Post Job</button>
+        </div>
+      </div>
+ 
+      <!-- Filters -->
+      <div class="filter-bar">
+        <span style="font-size:13px;font-weight:600;color:var(--slate)">Filter:</span>
+        <select class="filter-select skill-filter" id="filter-skill-jobs" onchange="loadJobs()">
+          <option value="all">All Skills</option>
+        </select>
+        <select class="filter-select" id="filter-urgency-jobs" onchange="loadJobs()">
+          <option value="all">Any Urgency</option>
+          <option value="today">Today</option>
+          <option value="tomorrow">Tomorrow</option>
+          <option value="this_week">This Week</option>
+        </select>
+        <select class="filter-select" id="filter-radius-jobs" onchange="loadJobs()">
+          <option value="3">Within 3 km</option>
+          <option value="5" selected>Within 5 km</option>
+          <option value="10">Within 10 km</option>
+          <option value="25">Within 25 km</option>
+        </select>
+        <button class="btn btn-secondary" style="padding:8px 16px;font-size:13px" onclick="loadJobs()">🔄 Refresh</button>
+      </div>
+ 
+      <!-- Jobs list -->
+      <div id="jobs-list" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PAGE: WORKERS                                           -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="page-workers" class="page">
+  <div class="container-wide">
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <h2 class="section-title" style="margin:0">👷 Workers Near You</h2>
+        <span class="location-pill user-location-display" onclick="getLocation()">📍 Detecting location...</span>
+      </div>
+ 
+      <!-- Filters -->
+      <div class="filter-bar">
+        <span style="font-size:13px;font-weight:600;color:var(--slate)">Filter:</span>
+        <select class="filter-select skill-filter" id="filter-skill-workers" onchange="loadWorkers()">
+          <option value="all">All Skills</option>
+        </select>
+        <select class="filter-select" id="filter-radius-workers" onchange="loadWorkers()">
+          <option value="3">Within 3 km</option>
+          <option value="5" selected>Within 5 km</option>
+          <option value="10">Within 10 km</option>
+          <option value="25">Within 25 km</option>
+        </select>
+        <button class="btn btn-secondary" style="padding:8px 16px;font-size:13px" onclick="loadWorkers()">🔄 Refresh</button>
+      </div>
+ 
+      <!-- Workers grid -->
+      <div id="workers-list"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PAGE: DASHBOARD                                         -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+  <!-- Rendered dynamically by JS -->
+</div>
+ 
+ 
+<!-- ═══ MODALS ══════════════════════════════════════════════ -->
+ 
+<!-- Choose Registration Type -->
+<div id="modal-choose-register" class="modal-overlay">
+  <div class="modal" style="max-width:400px;text-align:center">
+    <button class="modal-close" onclick="closeModal('modal-choose-register')">✕</button>
+    <div class="modal-title">Join RozgarSaathi</div>
+    <p style="color:var(--muted);margin-bottom:28px;font-size:15px">Who are you?</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button class="btn btn-primary" onclick="closeModal('modal-choose-register');openModal('modal-worker-register')">
+        👷 I'm a Worker (Mazdoor / Mistri)
+      </button>
+      <button class="btn btn-green" onclick="closeModal('modal-choose-register');openModal('modal-poster-register')">
+        🏠 I'm a Household / Contractor
+      </button>
+    </div>
+    <div class="divider">or</div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="closeModal('modal-choose-register');openModal('modal-login')">Already have an account? Login</button>
+  </div>
+</div>
+ 
+<!-- Worker Registration Modal -->
+<div id="modal-worker-register" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-worker-register')">✕</button>
+    <div class="modal-title">👷 Worker Registration</div>
+ 
+    <div class="verify-box">
+      <div class="icon">🛡️</div>
+      <p>Register free. Verify your Aadhaar to get a <strong>Verified Badge</strong> that builds trust with employers.</p>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" id="w-name" class="form-control" placeholder="Ramesh Kumar" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mobile Number *</label>
+        <input type="tel" id="w-phone" class="form-control" placeholder="9876543210" maxlength="10" />
+      </div>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" id="w-password" class="form-control" placeholder="Min 6 characters" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp Number</label>
+        <input type="tel" id="w-whatsapp" class="form-control" placeholder="Same as mobile" maxlength="10" />
+      </div>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Daily Rate (₹) *</label>
+        <input type="number" id="w-rate" class="form-control" placeholder="e.g. 600" min="100" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Experience (Years)</label>
+        <input type="number" id="w-experience" class="form-control" placeholder="e.g. 3" min="0" max="50" />
+      </div>
+    </div>
+ 
+    <div class="form-group">
+      <label class="form-label">Your Skills * (select all that apply)</label>
+      <div class="skill-selector" id="w-skills" data-multi="true"></div>
+    </div>
+ 
+    <div class="form-group">
+      <label class="form-label">About Yourself</label>
+      <textarea id="w-bio" class="form-control" placeholder="e.g. 5 years electrician experience, specialise in house wiring..."></textarea>
+    </div>
+ 
+    <button class="btn btn-primary" id="btn-register-worker" onclick="registerWorker()">Register as Worker</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted)">
+      Already registered? <a href="#" style="color:var(--saffron)" onclick="closeModal('modal-worker-register');openModal('modal-login')">Login here</a>
+    </p>
+  </div>
+</div>
+ 
+<!-- Poster Registration Modal -->
+<div id="modal-poster-register" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-poster-register')">✕</button>
+    <div class="modal-title">🏠 Employer Registration</div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" id="p-name" class="form-control" placeholder="Suresh Sharma" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mobile Number *</label>
+        <input type="tel" id="p-phone" class="form-control" placeholder="9876543210" maxlength="10" />
+      </div>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" id="p-password" class="form-control" placeholder="Min 6 characters" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">I am a</label>
+        <select id="p-type" class="form-control">
+          <option value="household">Household</option>
+          <option value="contractor">Contractor</option>
+          <option value="builder">Builder</option>
+          <option value="ngo">NGO</option>
+        </select>
+      </div>
+    </div>
+ 
+    <button class="btn btn-green" id="btn-register-poster" onclick="registerPoster()">Register as Employer</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted)">
+      Already registered? <a href="#" style="color:var(--saffron)" onclick="closeModal('modal-poster-register');openModal('modal-login')">Login here</a>
+    </p>
+  </div>
+</div>
+ 
+<!-- Login Modal -->
+<div id="modal-login" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-login')">✕</button>
+    <div class="modal-title">🔐 Login to RozgarSaathi</div>
+ 
+    <div class="tabs" data-tabgroup="login">
+      <button class="tab-btn active" data-tab="worker" onclick="switchTab('login','worker')">Worker Login</button>
+      <button class="tab-btn" data-tab="poster" onclick="switchTab('login','poster')">Employer Login</button>
+    </div>
+ 
+    <!-- Worker Login -->
+    <div data-tabpanel="login" data-tab="worker">
+      <div class="form-group">
+        <label class="form-label">Mobile Number</label>
+        <input type="tel" id="login-phone-worker" class="form-control" placeholder="9876543210" maxlength="10" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password-worker" class="form-control" placeholder="Your password" />
+      </div>
+      <button class="btn btn-primary" id="btn-login-worker" onclick="login('worker')">Login as Worker</button>
+    </div>
+ 
+    <!-- Poster Login -->
+    <div data-tabpanel="login" data-tab="poster" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Mobile Number</label>
+        <input type="tel" id="login-phone-poster" class="form-control" placeholder="9876543210" maxlength="10" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password-poster" class="form-control" placeholder="Your password" />
+      </div>
+      <button class="btn btn-green" id="btn-login-poster" onclick="login('poster')">Login as Employer</button>
+    </div>
+ 
+    <div class="divider">or</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="closeModal('modal-login');openModal('modal-worker-register')">Register as Worker</button>
+      <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="closeModal('modal-login');openModal('modal-poster-register')">Register as Employer</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- Post Job Modal -->
+<div id="modal-post-job" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-post-job')">✕</button>
+    <div class="modal-title">📋 Post a Job</div>
+ 
+    <div class="form-group">
+      <label class="form-label">Job Title *</label>
+      <input type="text" id="j-title" class="form-control" placeholder="e.g. Electrician needed for rewiring" />
+    </div>
+ 
+    <div class="form-group">
+      <label class="form-label">Description *</label>
+      <textarea id="j-desc" class="form-control" placeholder="Describe the work — what needs to be done, any special requirements..."></textarea>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Skill Required *</label>
+        <select id="j-skill" class="form-control skill-filter">
+          <option value="">Select skill...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Workers Needed</label>
+        <input type="number" id="j-workers" class="form-control" placeholder="1" min="1" max="100" value="1" />
+      </div>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Pay Amount (₹) *</label>
+        <input type="number" id="j-pay" class="form-control" placeholder="e.g. 700" min="100" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pay Type</label>
+        <select id="j-paytype" class="form-control">
+          <option value="per_day">Per Day</option>
+          <option value="per_hour">Per Hour</option>
+          <option value="fixed">Fixed Price</option>
+        </select>
+      </div>
+    </div>
+ 
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Urgency</label>
+        <select id="j-urgency" class="form-control">
+          <option value="today">Today</option>
+          <option value="tomorrow">Tomorrow</option>
+          <option value="this_week">This Week</option>
+          <option value="flexible">Flexible</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp Contact</label>
+        <input type="tel" id="j-whatsapp" class="form-control" placeholder="Your WhatsApp number" maxlength="10" />
+      </div>
+    </div>
+ 
+    <div style="background:var(--saffron-pale);border-radius:var(--radius-sm);padding:12px;margin-bottom:18px;font-size:13px;color:var(--slate)">
+      📍 <strong>Location:</strong> <span class="user-location-display">Detecting your location...</span>
+    </div>
+ 
+    <button class="btn btn-primary" id="btn-post-job" onclick="postJob()">Post Job — Free</button>
+    <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted)">✓ No commission · ✓ Direct WhatsApp contact · ✓ Expires in 24 hours</p>
+  </div>
+</div>
+ 
+<!-- Job Detail Modal -->
+<div id="modal-job-detail" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-job-detail')">✕</button>
+    <div id="job-detail-content"></div>
+  </div>
+</div>
+ 
+<!-- Aadhaar Verify Modal -->
+<div id="modal-aadhaar" class="modal-overlay">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('modal-aadhaar')">✕</button>
+    <div class="modal-title">🛡️ Aadhaar Verification</div>
+ 
+    <div style="background:var(--green-pale);border:1px solid rgba(0,135,90,0.25);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;font-size:14px;color:var(--green)">
+      <strong>Why verify?</strong> Verified workers get 3× more job inquiries and a trust badge on their profile.
+    </div>
+ 
+    <div class="form-group">
+      <label class="form-label">Last 4 digits of Aadhaar *</label>
+      <input type="text" id="aadhaar-last4" class="form-control" placeholder="e.g. 4521" maxlength="4" pattern="[0-9]{4}" />
+      <p style="font-size:12px;color:var(--muted);margin-top:4px">Your full Aadhaar number is never stored</p>
+    </div>
+ 
+    <div class="form-group">
+      <label class="form-label">OTP</label>
+      <div class="otp-input-group">
+        <input type="text" id="aadhaar-otp" class="form-control" placeholder="Enter 6-digit OTP" maxlength="6" />
+        <button class="btn btn-secondary" style="white-space:nowrap;padding:12px 16px" onclick="sendAadhaarOTP()">Send OTP</button>
+      </div>
+      <p style="font-size:12px;color:var(--saffron);margin-top:6px;font-weight:600">Demo: Use OTP <strong>123456</strong> to simulate verification</p>
+    </div>
+ 
+    <button class="btn btn-green" onclick="verifyAadhaar()">✓ Verify Now</button>
+  </div>
+</div>
+ 
+<!-- ─── Scripts ────────────────────────────────────────────── -->
+<script src="js/app.js"></script>
+</body>
+</html>
+
+
+index.html file
