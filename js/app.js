@@ -908,3 +908,268 @@ function getTimeAgo(date) {
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return `${Math.floor(diff/86400)}d ago`;
 }
+
+// ═══════════════════════════════════════════════════════════
+// ROZGARSAATHI — NEW FEATURE JAVASCRIPT
+// ═══════════════════════════════════════════════════════════
+
+// ── LIVE TICKER: duplicate spans for seamless loop ────────
+(function initTicker() {
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  // Clone all children for infinite scroll
+  const items = [...track.children];
+  items.forEach(item => track.appendChild(item.cloneNode(true)));
+})();
+
+// ── HERO SEARCH BAR: populate skill dropdown ─────────────
+(function initHeroSearch() {
+  const sel = document.getElementById('hero-skill-search');
+  if (!sel) return;
+  Object.entries(SKILLS).forEach(([key, val]) => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = `${val.icon} ${val.label}`;
+    sel.appendChild(opt);
+  });
+})();
+
+// update location display in hero search
+function updateHeroLoc() {
+  const el = document.getElementById('hero-loc-display');
+  if (!el) return;
+  el.textContent = `📍 ${userLocation.address.split(',')[0] || 'Near you'}`;
+}
+
+// Override getLocation to also update hero loc display
+const _origGetLocation = getLocation;
+// Patch location update
+const _origSetLoc = navigator.geolocation?.getCurrentPosition;
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updateHeroLoc, 1200);
+});
+
+function heroSearch() {
+  const skill = document.getElementById('hero-skill-search').value;
+  navigateTo('workers');
+  // Apply the selected skill filter
+  setTimeout(() => {
+    const filterEl = document.getElementById('filter-skill-workers');
+    if (filterEl && skill) {
+      filterEl.value = skill;
+      loadWorkers();
+    }
+  }, 200);
+}
+
+// ── SKILL TAG CLICK: go to workers page filtered ─────────
+function filterBySkill(skill) {
+  navigateTo('workers');
+  setTimeout(() => {
+    const filterEl = document.getElementById('filter-skill-workers');
+    if (filterEl) {
+      filterEl.value = skill;
+      loadWorkers();
+      showToast(`Showing ${SKILLS[skill]?.label || skill} workers near you`, 'info');
+    }
+  }, 200);
+}
+
+// ── WHATSAPP PREVIEW MODAL ────────────────────────────────
+let _waCurrentNumber = '';
+let _waDefaultMsg = '';
+
+function openWAPreview(name, phone, defaultMsg) {
+  _waCurrentNumber = phone;
+  _waDefaultMsg = defaultMsg;
+
+  const initials = name.split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('wa-avatar').textContent = initials;
+  document.getElementById('wa-name').textContent = name;
+
+  const msgEl = document.getElementById('wa-custom-msg');
+  msgEl.value = defaultMsg;
+  document.getElementById('wa-bubble-text').textContent = defaultMsg;
+
+  _updateWASendLink(phone, defaultMsg);
+  openModal('modal-whatsapp-preview');
+  setTimeout(() => msgEl.focus(), 300);
+}
+
+function updateWAPreview() {
+  const msg = document.getElementById('wa-custom-msg').value;
+  document.getElementById('wa-bubble-text').textContent = msg || '...';
+  _updateWASendLink(_waCurrentNumber, msg);
+}
+
+function _updateWASendLink(phone, msg) {
+  const link = document.getElementById('wa-send-link');
+  if (link) {
+    link.href = `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
+  }
+}
+
+// ── OVERRIDE renderWorkerCard to use WA Preview ───────────
+const _origRenderWorkerCard = renderWorkerCard;
+renderWorkerCard = function(w) {
+  const initials = w.name.split(' ').map(x => x[0]).join('').toUpperCase().slice(0,2);
+  const avgRating = w.rating?.average || 0;
+  const stars = '★'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
+  const skills = (w.skills||[]).slice(0,3).map(s => `<span class="skill-tag">${SKILLS[s]?.icon||'🔨'} ${SKILLS[s]?.label||s}</span>`).join('');
+  const waNumber = w.whatsappNumber || w.phone;
+  const waMsg = `Hello ${w.name}! I found you on RozgarSaathi. Are you available for work today?`;
+  const safeMsg = waMsg.replace(/'/g, "\\'");
+
+  return `<div class="worker-card" data-worker-id="${w._id}">
+    <div class="worker-card-header">
+      <div class="worker-avatar">${initials}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div class="worker-name">${w.name}</div>
+          ${w.isVerified
+            ? '<span class="verified-badge">✓ Aadhaar Verified</span>'
+            : '<span style="font-size:11px;color:var(--muted);font-weight:500">Unverified</span>'}
+        </div>
+        <div class="worker-location">
+          <span class="availability-dot ${w.isAvailable ? 'available' : 'unavailable'}"></span>
+          ${w.isAvailable ? '<span class="avail-badge">Available now</span>' : '<span style="color:var(--muted);font-size:12px">Not available</span>'}
+          ${w.distanceKm ? ` <span style="color:var(--muted);font-size:12px;margin-left:4px">· ${w.distanceKm} km away</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="skill-tags">${skills}</div>
+    <div class="worker-stats">
+      <div class="worker-stat"><span class="stars">${stars}</span> ${avgRating.toFixed(1)} (${w.rating?.count||0})</div>
+      <div class="worker-stat">💼 ${w.totalJobsCompleted} jobs</div>
+      <div class="worker-stat">⏱️ ${w.experience}yr exp</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="rate-badge">₹${w.dailyRate.toLocaleString('en-IN')}/day</div>
+    </div>
+    <button class="wa-preview-trigger" onclick="openWAPreview('${w.name.replace(/'/g,"\\'")}','${waNumber}','${safeMsg}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Contact via WhatsApp
+    </button>
+  </div>`;
+};
+
+// ── ENHANCED WORKERS PAGE: add verified-only filter + search
+const _origLoadWorkers = loadWorkers;
+loadWorkers = async function() {
+  const skill   = document.getElementById('filter-skill-workers')?.value || 'all';
+  const radius  = document.getElementById('filter-radius-workers')?.value || 5;
+  const search  = document.getElementById('worker-search-input')?.value?.toLowerCase() || '';
+  const verOnly = document.getElementById('filter-verified-workers')?.classList.contains('active') || false;
+  const container = document.getElementById('workers-list');
+  if (!container) return;
+
+  container.innerHTML = `<div class="loading"><div class="spinner"></div> Finding workers nearby...</div>`;
+
+  try {
+    let url = `${API}/workers/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radius}`;
+    if (skill !== 'all') url += `&skill=${skill}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (!data.success || !data.data.length) throw new Error('empty');
+    let workers = data.data;
+    if (verOnly) workers = workers.filter(w => w.isVerified);
+    if (search) workers = workers.filter(w => w.name.toLowerCase().includes(search) || (w.skills||[]).some(s => SKILLS[s]?.label.toLowerCase().includes(search)));
+    if (!workers.length) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">👷</div><h3>No workers match</h3><p>Try adjusting filters</p></div>`;
+      return;
+    }
+    container.innerHTML = `<div class="card-grid">${workers.map(w => renderWorkerCard(w)).join('')}</div>`;
+  } catch (err) {
+    let filtered = DEMO_WORKERS.slice();
+    if (skill !== 'all') filtered = filtered.filter(w => w.skills.includes(skill));
+    if (verOnly) filtered = filtered.filter(w => w.isVerified);
+    if (search) filtered = filtered.filter(w => w.name.toLowerCase().includes(search) || (w.skills||[]).some(s => SKILLS[s]?.label.toLowerCase().includes(search)));
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">👷</div><h3>No workers match your filters</h3><p>Try different filters</p></div>`;
+      return;
+    }
+    container.innerHTML = `<div class="card-grid">${filtered.map(w => renderWorkerCard(w)).join('')}</div>`;
+  }
+};
+
+// ── INJECT enhanced filter UI into workers page ───────────
+document.addEventListener('DOMContentLoaded', () => {
+  const filterBar = document.querySelector('#page-workers .filter-bar');
+  if (filterBar) {
+    // Add verified-only toggle button
+    const verBtn = document.createElement('button');
+    verBtn.id = 'filter-verified-workers';
+    verBtn.className = 'verified-filter-toggle';
+    verBtn.innerHTML = '✓ Verified Only';
+    verBtn.onclick = function() {
+      this.classList.toggle('active');
+      loadWorkers();
+    };
+    filterBar.appendChild(verBtn);
+  }
+
+  // Add search bar above workers filter bar
+  const workersSection = document.querySelector('#page-workers .section');
+  if (workersSection) {
+    const filterBarEl = workersSection.querySelector('.filter-bar');
+    if (filterBarEl) {
+      const searchBar = document.createElement('div');
+      searchBar.className = 'page-search-bar';
+      searchBar.innerHTML = `
+        <svg width="16" height="16" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="worker-search-input" class="page-search-input" placeholder="Search by name or skill..." oninput="loadWorkers()">
+      `;
+      workersSection.insertBefore(searchBar, filterBarEl);
+    }
+  }
+
+  // Also inject search bar for jobs page
+  const jobsSection = document.querySelector('#page-jobs .section');
+  if (jobsSection) {
+    const filterBarEl = jobsSection.querySelector('.filter-bar');
+    if (filterBarEl) {
+      const searchBar = document.createElement('div');
+      searchBar.className = 'page-search-bar';
+      searchBar.innerHTML = `
+        <svg width="16" height="16" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="job-search-input" class="page-search-input" placeholder="Search jobs by title or skill..." oninput="loadJobs()">
+      `;
+      jobsSection.insertBefore(searchBar, filterBarEl);
+    }
+  }
+});
+
+// ── ENHANCED loadJobs with search ────────────────────────
+const _origLoadJobs = loadJobs;
+loadJobs = async function() {
+  const skill   = document.getElementById('filter-skill-jobs')?.value || 'all';
+  const urgency = document.getElementById('filter-urgency-jobs')?.value || 'all';
+  const radius  = document.getElementById('filter-radius-jobs')?.value || 5;
+  const search  = document.getElementById('job-search-input')?.value?.toLowerCase() || '';
+  const container = document.getElementById('jobs-list');
+  if (!container) return;
+
+  container.innerHTML = `<div class="loading"><div class="spinner"></div> Loading jobs...</div>`;
+
+  try {
+    let url = `${API}/jobs/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radius}`;
+    if (skill !== 'all') url += `&skill=${skill}`;
+    if (urgency !== 'all') url += `&urgency=${urgency}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (!data.success || !data.data.length) throw new Error('empty');
+    let jobs = data.data;
+    if (search) jobs = jobs.filter(j => j.title.toLowerCase().includes(search) || j.description.toLowerCase().includes(search) || (SKILLS[j.skillRequired]?.label||'').toLowerCase().includes(search));
+    container.innerHTML = jobs.map(job => renderJobCard(job)).join('');
+  } catch (err) {
+    let filtered = DEMO_JOBS.slice();
+    if (skill !== 'all') filtered = filtered.filter(j => j.skillRequired === skill);
+    if (urgency !== 'all') filtered = filtered.filter(j => j.urgency === urgency);
+    if (search) filtered = filtered.filter(j => j.title.toLowerCase().includes(search) || j.description.toLowerCase().includes(search));
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><h3>No jobs match your filters</h3><p>Try different filters or check back later</p></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(job => renderJobCard(job)).join('');
+  }
+};
